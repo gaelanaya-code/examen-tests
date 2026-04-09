@@ -7,7 +7,7 @@ pipeline {
     }
 
     environment {
-        APP_NAME   = 'examen-tests' // cambia este nombre en cada proyecto
+        APP_NAME   = 'mi-app-java' // cambia este nombre en cada proyecto
         MAVEN_OPTS = '-Xmx1024m -XX:MaxMetaspaceSize=512m'
     }
 
@@ -16,41 +16,42 @@ pipeline {
         buildDiscarder(logRotator(numToKeepStr: '10'))
     }
 
-    stages {
+       stages {
         stage('Checkout') {
             steps {
                 checkout scm
-                echo "Rama:   ${GIT_BRANCH}"
-                echo "Commit: ${GIT_COMMIT}"
                 sh 'java -version'
                 sh 'mvn -version'
             }
         }
 
-        stage('Compilar') {
+        stage('Compilar y Test') {
             steps {
-                sh 'mvn clean compile'
-            }
-        }
-
-        stage('Tests') {
-            steps {
-                sh 'mvn test'
+                // Esto le dice a Jenkins que entre en la carpeta donde está el pom.xml
+                dir('stream-exercises-master(1)/stream-exercises-master') {
+                    sh 'mvn clean compile'
+                    sh 'mvn test'
+                }
             }
             post {
                 always {
-                    junit '**/target/surefire-reports/*.xml'
+                    dir('stream-exercises-master(1)/stream-exercises-master') {
+                        junit '**/target/surefire-reports/*.xml'
+                    }
                 }
             }
         }
 
         stage('Empaquetar') {
             steps {
-                sh 'mvn package -DskipTests'
-                archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
+                dir('stream-exercises-master(1)/stream-exercises-master') {
+                    sh 'mvn package -DskipTests'
+                    archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
+                }
             }
         }
     }
+
 
     post {
         success {
